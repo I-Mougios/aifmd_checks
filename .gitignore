@@ -1,0 +1,16 @@
+# Ignore Python compiled files
+__pycache__/
+*.py[cod]
+
+#Ignore system files
+.DS_Store/
+
+#Ignore editor files
+.idea/
+
+# Ignore jupyter notebooks
+*.ipynb
+
+# Ignore input and output folder
+client_data/
+output/
