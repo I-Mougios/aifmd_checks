@@ -17,18 +17,18 @@ def number_check(value, precision, scale, sheet_name, index, column):
             if '-' in int_part:
                 precision += 1
             if len(int_part) + len(dec_part) > precision:
-                print(LengthError(sheet_name, index+1, column, value, 'precision'))
+                print(LengthError(sheet_name, index, column, value, 'precision'))
 
             elif len(dec_part) > scale:
-                print(LengthError(sheet_name, index+1, column, value, 'scale'))
+                print(LengthError(sheet_name, index, column, value, 'scale'))
 
         except (IndexError, ValueError):
             try:
                 new_value = int(float(value))
                 if new_value >= 0 and len(str(new_value)) > precision:
-                    print(LengthError(sheet_name, index+1, column, value, 'precision'))
+                    print(LengthError(sheet_name, index, column, value, 'precision'))
                 elif new_value < 0 and len(str(new_value)) > precision + 1:
-                    print(LengthError(sheet_name, index+1, column, value, 'precision'))
+                    print(LengthError(sheet_name, index, column, value, 'precision'))
             except (ValueError, TypeError):
                 pass
 
@@ -76,47 +76,54 @@ class DataProcessor:
     @staticmethod
     def load_reporting_sheets(path: str, header: int = 15,
                               rows_to_skip: int = 7,
-                              column_name_to_drop: str = 'Technical Field :') -> Dict[str, List[Dict]]:
+                              column_name_to_drop: str = 'Technical Field :',
+                              ) -> Dict[str, List[Dict]]:
 
         import warnings
         warnings.filterwarnings('ignore', category=UserWarning)
         warnings.filterwarnings('ignore', category=FutureWarning)
 
         dataframes = {}
-        excel_file = pd.ExcelFile(path)
+        with pd.ExcelFile(path) as excel_file:
 
-        for sheet in DataProcessor._REPORTING_SHEETS:
-            df = pd.read_excel(excel_file,
-                               sheet_name=sheet,
-                               header=header,
-                               )
-            # Drop the rows until find real clients data
-            df.drop(index=[i for i in range(rows_to_skip)], inplace=True)
-            # Drop the column A as client provides data from the column B
-            df.drop(columns=column_name_to_drop, inplace=True)
+            # Manually define the default na_values minus "N/A"
+            custom_na_values = ['', '#N/A', '#N/A N/A', '#NA', '-1.#IND', '-1.#QNAN', '-NaN', '-nan',
+                                '1.#IND', '1.#QNAN', '', 'NA', 'NULL',
+                                'NaN', 'None', 'n/a', 'nan', 'null']
 
-            # Forcefully convert possible date columns
-            for col in df.columns:
-                if 'DATE' in col:
-                    df[col] = pd.to_datetime(df[col], errors='ignore').dt.date
+            for sheet in DataProcessor._REPORTING_SHEETS:
+                df = pd.read_excel(excel_file,
+                                sheet_name=sheet,
+                                header=header,
+                                na_values=custom_na_values,
+                                keep_default_na=False,
+                                )
+                
+                # Drop the rows until find real clients data
+                df.drop(index=[i for i in range(rows_to_skip)], inplace=True)
+                # Drop the column A as client provides data from the column B
+                df.drop(columns=column_name_to_drop, inplace=True)
 
-            for col in df.select_dtypes(include='object').columns:
-                df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
+                # Forcefully convert possible date columns
+                for col in df.columns:
+                    if 'DATE' in col:
+                        df[col] = pd.to_datetime(df[col], errors='ignore').dt.date
 
-            # Transform the datetimes objects to date objects
-            # date_columns = df.select_dtypes(include=['datetime64', 'datetime']).columns
-            # if date_columns is not None:
-            #     for date_col in date_columns:
-            #         df[date_col] = pd.to_datetime(df[date_col]).dt.date
+                for col in df.select_dtypes(include='object').columns:
+                    df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
 
-            # Do not include sheet that are completely null
-            df.dropna(how='all', inplace=True)
-            if not df.empty:
-                df.columns = [col.lower() for col in df.columns]
-                df = df.replace(u'\xa0', 'invisible_char', regex=True)
-                dataframes[sheet] = df.to_dict('records')
+                # Transform the datetimes objects to date objects
+                # date_columns = df.select_dtypes(include=['datetime64', 'datetime']).columns
+                # if date_columns is not None:
+                #     for date_col in date_columns:
+                #         df[date_col] = pd.to_datetime(df[date_col]).dt.date
 
-        excel_file.close()
+                # Do not include sheet that are completely null
+                df.dropna(how='all', inplace=True)
+                if not df.empty:
+                    df.columns = [col.lower() for col in df.columns]
+                    df = df.replace(u'\xa0', 'invisible_char', regex=True)
+                    dataframes[sheet] = df.to_dict('records')
 
         return dataframes
 
@@ -126,7 +133,7 @@ class DataProcessor:
             value = float(value)
             return value.is_integer()
         except (ValueError, TypeError):
-            if value is not None:
+            if value is not None and value != 'N/A':
                 print(InvalidDataType(sheet_name, index+1, column, value))
             return False
 
@@ -156,7 +163,7 @@ class DataProcessor:
 
     @staticmethod
     def datatype_check(value,
-                       datatype: (Tuple, str),
+                       datatype: Tuple,
                        sheet_name: str,
                        index: int,
                        column: str):
@@ -186,18 +193,19 @@ class DataProcessor:
     def instantiate_with_checks(cls, dataframes):
         sheet_name = cls.__name__
 
-        for index, kwarg in enumerate(dataframes[sheet_name]):
+        for index, kwarg in enumerate(dataframes[sheet_name], start=1):
             for column, value in kwarg.items():
                 try:
                     datatype = cls.datatypes[column]
                 except KeyError:
                     print(f"****Invalid column {column} in {sheet_name}******")
-                    print(InvalidDataType(sheet_name, index + 1, column, value))
+                    print(InvalidDataType(sheet_name, index, column, value))
 
                 if value == 'invisible_char':
-                    print(InvalidDataType(sheet_name, index+1, column, value))
+                    print(InvalidDataType(sheet_name, index, column, value))
                 elif datatype[0] == "NUMBER" and DataProcessor.is_integer(value, sheet_name, index, column):
                     value = int(float(value))
+                    
                     kwarg[column] = value
 
                 if DataProcessor.isnull(value):
