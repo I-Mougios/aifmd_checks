@@ -29,35 +29,32 @@ def select_excel_file():
     # Define the initial directory as the Desktop
     initial_directory = Path(os.path.expanduser("~/Desktop"))
 
-    # While loop to repeatedly prompt the user until a valid Excel file is selected
-    while True:
-        # Show a file dialog to select the Excel file, starting from the Desktop
-        file_path = filedialog.askopenfilename(
-            title="Select the Excel file to be validated",
-            initialdir=initial_directory,  # Set the starting directory to Desktop
-            filetypes=[("Excel files", "*.xlsx *.xls")]
-        )
+    try:
+        while True:
+            # Show a file dialog to select the Excel file, starting from the Desktop
+            file_path = filedialog.askopenfilename(
+                title="Select the Excel file to be validated",
+                initialdir=initial_directory,  # Set the starting directory to Desktop
+                filetypes=[("Excel files", "*.xlsx *.xls")]
+            )
 
-        # Validate if a file was selected and if it's an Excel file
-        if file_path:
-            file_path = Path(file_path)
+            # Validate if a file was selected and if it's an Excel file
+            if file_path:
+                file_path = Path(file_path)
 
-            # Check if the file has the correct Excel extension
-            if file_path.suffix.lower() in ['.xlsx', '.xls']:
-                return file_path  # Return the valid file path and exit the function
+                # Check if the file has the correct Excel extension
+                if file_path.suffix.lower() in ['.xlsx', '.xls']:
+                    return file_path  # Return the valid file path and exit the function
+                else:
+                    print("The selected file is not an Excel file.")
             else:
-                print("The selected file is not an Excel file.")
-        else:
-            print("No file selected.")
+                print("No file selected.")
 
-        # Ask the user if they want to continue or end the process if the file is invalid or not selected
-        continue_choice = input("Do you want to continue? (yes/no): ").strip().lower()
-        if continue_choice != 'yes':
-            print("Process ended.")
-            break  # Exit the loop if the user chooses 'no'
-
-    # Destroy the Tkinter root instance
-    root.destroy()
-
-
-
+            # Ask the user if they want to continue or end the process if the file is invalid or not selected
+            continue_choice = input("Do you want to continue? (yes/no): ").strip().lower()
+            if continue_choice != 'yes':
+                print("Process ended.")
+                return None  # Exit the function if the user chooses 'no'
+    finally:
+        # Destroy the Tkinter root instance
+        root.destroy()
