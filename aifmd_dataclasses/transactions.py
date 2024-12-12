@@ -114,7 +114,7 @@ class Transactions(DataProcessor):
                 print(InconsistencyError(sheet_name, idx+1, 'currency_code', instance.ccy_ic,
                                          message='Invalid currency code'))
 
-            if DataProcessor.notnull(instance.tra_status) and instance.tra_status.lower() not in ['closed, open']:
+            if DataProcessor.notnull(instance.tra_status) and instance.tra_status.lower() not in ['closed', 'open']:
                 print(InconsistencyError(sheet_name, idx+1, 'tra_status', instance.tra_status,
                                          message='Invalid tra_status'))
 

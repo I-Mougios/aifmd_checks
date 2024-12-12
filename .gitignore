@@ -7,6 +7,7 @@ __pycache__/
 
 #Ignore editor files
 .idea/
+.vscode/
 
 # Ignore jupyter notebooks
 *.ipynb
@@ -14,3 +15,7 @@ __pycache__/
 # Ignore input and output folder
 client_data/
 output/
+DRT_2024_Q3_AMND_CB.xlsx
+
+# Ignore test files
+test.py
