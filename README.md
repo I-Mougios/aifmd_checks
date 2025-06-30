@@ -1,4 +1,5 @@
 Automated AIFMD Data Validation & Compliance Utility
+
 This Python project is designed to streamline and automate critical data validation and compliance checks related to the Alternative Investment Fund Managers Directive (AIFMD). It provides a robust framework for processing standardized financial data, ensuring accuracy and adherence to regulatory requirements.
 
 💡 Problem Solved
